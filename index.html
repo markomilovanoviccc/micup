@@ -2,7 +2,8 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+
   <title>MicUp</title>
   <style>
     :root{
@@ -225,6 +226,42 @@ canvas{
       .score{ font-size:40px; }
       .bigScore{ font-size:70px; }
     }
+
+    /* --- MOBILE FIX: kein Markieren, kein Highlight, kein Callout --- */
+html, body, .wrap, canvas, .overlay, .panel, button, div, span{
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+canvas, button{
+  -webkit-tap-highlight-color: transparent;
+}
+
+body{
+  overscroll-behavior: none;
+}
+/* --- /MOBILE FIX --- */
+/* --- MOBILE FIX: kein Markieren / kein Zoom --- */
+html, body, .wrap, canvas, .overlay, .panel, button, div, span{
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+canvas, button{
+  -webkit-tap-highlight-color: transparent;
+}
+
+canvas{
+  touch-action: none;
+}
+
+body{
+  overscroll-behavior: none;
+}
+/* --- /MOBILE FIX --- */
+
   </style>
 </head>
 <body>
@@ -263,9 +300,22 @@ canvas{
   </div>
 
 <script>
-(() => {
+   
+    (() => {
   const canvas = document.getElementById("c");
   const ctx = canvas.getContext("2d");
+
+  // --- MOBILE FIX: nur Touch, nicht Desktop ---
+  // iOS pinch/double-tap gesture events
+  document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive:false });
+  document.addEventListener("gesturechange", (e) => e.preventDefault(), { passive:false });
+  document.addEventListener("gestureend", (e) => e.preventDefault(), { passive:false });
+
+  // verhindert Scroll/Zoom nur wenn man am Canvas “zieht”
+  canvas.addEventListener("touchmove", (e) => e.preventDefault(), { passive:false });
+  // --- /MOBILE FIX ---
+
+
 
   const SCALE = 2;
   const RW = 480 / SCALE;
