@@ -39,7 +39,24 @@
       image-rendering: crisp-edges;
       box-shadow: 0 18px 70px rgba(0,0,0,0.55);
       touch-action: none;
+      /* Handy: kein blaues Markieren / kein Callout */
+html, body, .wrap, canvas{
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+canvas{
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none; /* hattest du schon, wichtig */
+}
+
     }
+
+    body{
+  overscroll-behavior: none;
+}
+
 
     .score{
       position:fixed;
@@ -303,38 +320,59 @@
   addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
   const down = (...list) => list.some(k => keys.has(k));
 
-    // --- TOUCH CONTROLS (NEU) ---
-  // touchDir: -1 = links, +1 = rechts, 0 = nichts
-  let touchDir = 0;
+ // --- TOUCH CONTROLS (NEU, besser fürs Wischen) ---
+let touchDir = 0;         // -1 links, +1 rechts, 0 nichts
+let touchActive = false;
+let touchStartX = 0;
+let touchLastX = 0;
 
-  function updateTouchDir(clientX){
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    touchDir = (x < rect.width * 0.5) ? -1 : 1;
+const SWIPE_DEADZONE = 10; // px: kleiner = sensibler
+
+function setDirFromTap(clientX){
+  const rect = canvas.getBoundingClientRect();
+  const x = clientX - rect.left;
+  touchDir = (x < rect.width * 0.5) ? -1 : 1;
+}
+
+canvas.addEventListener("contextmenu", (e) => e.preventDefault()); // long-press menu weg
+
+canvas.addEventListener("pointerdown", (e) => {
+  if (e.pointerType === "mouse") return;
+  e.preventDefault();
+
+  touchActive = true;
+  touchStartX = e.clientX;
+  touchLastX = e.clientX;
+
+  canvas.setPointerCapture(e.pointerId);
+
+  // tap sofort: linke/rechte hälfte
+  setDirFromTap(e.clientX);
+}, { passive:false });
+
+canvas.addEventListener("pointermove", (e) => {
+  if (!touchActive || e.pointerType === "mouse") return;
+  if (!canvas.hasPointerCapture(e.pointerId)) return;
+  e.preventDefault();
+
+  touchLastX = e.clientX;
+  const dx = touchLastX - touchStartX;
+
+  // wenn du wirklich wischst: Richtung nach dx (stabiler)
+  if (Math.abs(dx) > SWIPE_DEADZONE){
+    touchDir = dx < 0 ? -1 : 1;
   }
+}, { passive:false });
 
-  canvas.addEventListener("pointerdown", (e) => {
-    // nur Touch/Pen (Maus ignorieren, sonst nervig am PC)
-    if (e.pointerType === "mouse") return;
-    e.preventDefault();
-    canvas.setPointerCapture(e.pointerId);
-    updateTouchDir(e.clientX);
-  }, { passive:false });
+function endTouch(e){
+  if (e.pointerType === "mouse") return;
+  touchActive = false;
+  touchDir = 0;
+}
+canvas.addEventListener("pointerup", endTouch, { passive:true });
+canvas.addEventListener("pointercancel", endTouch, { passive:true });
+// --- /TOUCH CONTROLS ---
 
-  canvas.addEventListener("pointermove", (e) => {
-    if (e.pointerType === "mouse") return;
-    if (!canvas.hasPointerCapture(e.pointerId)) return;
-    e.preventDefault();
-    updateTouchDir(e.clientX);
-  }, { passive:false });
-
-  function endTouch(e){
-    if (e.pointerType === "mouse") return;
-    touchDir = 0;
-  }
-  canvas.addEventListener("pointerup", endTouch, { passive:true });
-  canvas.addEventListener("pointercancel", endTouch, { passive:true });
-  // --- /TOUCH CONTROLS ---
 
 
   // Helpers
